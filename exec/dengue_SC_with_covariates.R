@@ -25,7 +25,7 @@ library(xtable)
 
 nt=7
 
-objects_to_be_used=dengue_data_set_up(nt=nt)
+objects_to_be_used=dengue_data_set_up(nt=nt,month=6)
 
 #objects_to_be_used = readRDS("exec/objects_to_be_used.RDS")
 
