@@ -74,7 +74,31 @@ Q_ICAR=inla.scale.model(Q_s1,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
 Q_st=kronecker(Q_RW2,Q_ICAR)
 source("R/SpaceTimeProjConstr.R")
 
-PC = SpaceTimeProjConstr(ns,nt)
+PC = SpaceTimeProjConstr(ns,nt,type ="GCF")
+
+
+baseformula <- Y ~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+  f(T1,
+    #replicate = S2,
+    model = "bym2",constr=TRUE,graph=GMRF_RW(n=12,order=1)!=0,scale.model=T)+
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
+  f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
+    extraconstr = list(A=as.matrix(PC2$A),e=rep(0,nrow(PC2$A))))+
+  f(S1T2_iid,model="iid")
+
+
+baseformula.proj <- Y~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+  f(T1,
+    #replicate = S2,
+    model = "bym2",constr=TRUE,graph =GMRF_RW(n=12,order=1)!=0,scale.model=T)+
+  f(S1,model="generic0",diagonal=eps,Cmatrix=Q_s1,constr=T) +
+  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
+  f(S1T2,model="z",Z=as.matrix(PC2$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
+    extraconstr=list(A=as.matrix(PC2$A2),e=rep(0,nrow(PC2$A2))))+
+  f(S1T2_iid,model="iid")
+
+
 
 eps = 1e-05
 kap = 1e06
