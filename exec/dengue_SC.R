@@ -29,12 +29,18 @@ objects_to_be_used2=dengue_data_set_up(nt=nt,month=6)
 
 objects_to_be_used = readRDS("exec/objects_to_be_used.RDS")
 
+
 #We fit a simplified model first on a smaller subset of the data, using six years of data.
 df_check=objects_to_be_used$data_check
 df= objects_to_be_used$data_check
 df_month=objects_to_be_used$df_month
 Q_s1=objects_to_be_used$Q_s1
 ns=nrow(Q_s1)
+
+df$basis_tmin=objects_to_be_used2$basis_tmin
+df$basis_pdsi=objects_to_be_used2$basis_pdsi
+df$urban_basis1_pdsi=objects_to_be_used2$urban_basis1_pdsi
+
 
 
 Q_RW2_before=GMRF_RW(n=nt,order=2)
