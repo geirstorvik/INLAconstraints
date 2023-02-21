@@ -16,7 +16,7 @@ rm(list=ls())
 #pop = c(681071,  475654,  264970,  244051, 1227305,  371054,  417711,  305244,  633117,  467632,  244326)
 
 #Read data and make indices for temporal and interaction terms
-d = readRDS("data/coviddata.RDS")
+d = readRDS("../data/coviddata.RDS")
 df = d$data
 df$weekday = as.factor(weekdays(df$date))
 df = df[df$date>as.Date("2020-09-01"),]
@@ -26,7 +26,7 @@ df$county = as.numeric(as.factor(df$location_code))
 ns = max(df$county)
 
 #Reduce number of time points
-nt = 100
+nt = 500
 df = df[df$T1<(nt+1),]
 
 df$S1T1 = (df$T1-1)*ns+df$county
@@ -70,7 +70,7 @@ Q_ICAR=inla.scale.model(Qs,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
 #Q_st=kronecker(Q_RW2_before,Qs)
 Q_st=kronecker(Q_RW2,Q_ICAR)
 #Q_st = inla.scale.model(Q_st,list(A=D.g,e=rep(0,nrow(D.g))))
-source("R/SpaceTimeProjConstr.R")
+source("../R/SpaceTimeProjConstr.R")
 PC = SpaceTimeProjConstr(ns,nt,dim="time")
 
 #PC = SpaceTimeProjConstr(ns,nt,type="space")
@@ -98,7 +98,7 @@ baseformula.proj=cases~offset(E)+#weekday+
 
 Q_st2=kronecker(Q_RW2,Q_ICAR)
 #Q_st = inla.scale.model(Q_st,list(A=D.g,e=rep(0,nrow(D.g))))
-source("R/SpaceTimeProjConstr.R")
+source("../R/SpaceTimeProjConstr.R")
 PC2 = SpaceTimeProjConstr(ns,nt,dim="space")
 
 df$T2 = df$T1
@@ -129,12 +129,12 @@ if(!file.exists("covid.goicoa.proj.RDS") | !file.exists("covid.goicoa.RDS"))
   run.goicoa = TRUE
 if(run.goicoa)
 {
-  covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =4,inla.mode="experimental",
+  covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =1,inla.mode="experimental",
                          control.fixed = list(
                            prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
   #saveRDS(covid.goicoa.proj,file="covid.goicoa.proj.RDS")
   
-  covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =4,inla.mode="experimental",
+  covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =40,inla.mode="experimental",
                     control.fixed = list(
                       prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
   #saveRDS(covid.goicoa,file="covid.goicoa.RDS")

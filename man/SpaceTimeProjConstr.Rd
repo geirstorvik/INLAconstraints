@@ -4,14 +4,17 @@
 \alias{SpaceTimeProjConstr}
 \title{Create the projector matrix and the corresponding constraints}
 \usage{
-SpaceTimeProjConstr(ns, nt, method = "DEFAULT")
+SpaceTimeProjConstr(ns, nt, type = "GCF", dim = "DEFAULT")
 }
 \arguments{
 \item{'ns'}{The number of spatial points}
 
 \item{'nt'}{The number of temporal points}
 
-\item{'method'}{Either 'space' in which case the constraints with respect to space are used, or
+\item{'type'}{Either 'GCF' in which case the Goicoa (GCF) constraints are used or
+'SC' in which case the additional Schrødle (SC) constraints are used. Default is 'GCF'}
+
+\item{'dim'}{Either 'space' in which case the constraints with respect to space are used, or
 'time' in which case the constraints with respect to time is used. If no specification is given,
 'space' is given if ns>nt and 'time' in the opposite case.}
 }

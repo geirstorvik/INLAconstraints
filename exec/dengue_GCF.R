@@ -106,19 +106,19 @@ xtable(tab.goicoa2,digits=3)
 saveRDS(tab.goicia2,file="dengue_tab_goicoa2.RDS")
 
 #Plotting interaction terms, mean and standard deviations
-plotData=data.table::data.table(StandardModelE=dengue.goicoa$summary.random$S1T1$mean,
-                                NewParametrizationE=dengue.goicoa.proj$summary.random$S1T1$mean[1:(ns*nt)],
-                                StandardModelSD=dengue.goicoa$summary.random$S1T1$sd,
-                                NewParametrizationSD=dengue.goicoa.proj$summary.random$S1T1$sd[1:(ns*nt)])
+plotData=data.table::data.table(StandardModelE=dengue.goicoa$summary.random$S1T2$mean,
+                                NewParametrizationE=dengue.goicoa.proj$summary.random$S1T2$mean[1:(ns*nt)],
+                                StandardModelSD=dengue.goicoa$summary.random$S1T2$sd,
+                                NewParametrizationSD=dengue.goicoa.proj$summary.random$S1T2$sd[1:(ns*nt)])
 
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))
-ggsave("Dengue_EstimatedMeanSimulatedDateGoicoa.pdf")
+ggsave("Dengue_EstimatedMeanSimulatedDateGoicoa.pdf",height=5,width=5)
 ggplot(data=plotData)+geom_point(aes(y=StandardModelSD,x=NewParametrizationSD),colour="red",size=1.25)+xlab("Estimated sd new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated sd standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))#+
-ggsave("Dengue_EstimatedSDSimulatedDataGoicoa.pdf")
+ggsave("Dengue_EstimatedSDSimulatedDataGoicoa.pdf",height=5,width=5)
 
 #Comparison of marginal likelihoods
 #Need to correct for the standard method

@@ -24,7 +24,7 @@ library(INLA)
 library(Matrix)
 nt=6
 
-objects_to_be_used=dengue_data_set_up(nt=nt,month=6)
+objects_to_be_used=dengue_data_set_up(nt=nt)
 
 
 

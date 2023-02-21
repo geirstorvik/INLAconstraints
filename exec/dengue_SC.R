@@ -9,6 +9,7 @@
 #NB: We remove one region to get a fully connected graph.
 
 # Step 0: load packages and pre-processed data
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 rm(list=ls())
 library(INLA)
 INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
@@ -25,9 +26,9 @@ library(xtable)
 
 nt=6
 
-objects_to_be_used2=dengue_data_set_up(nt=nt,month=6)
+#objects_to_be_used=dengue_data_set_up(nt=nt)
 
-objects_to_be_used = readRDS("exec/objects_to_be_used.RDS")
+objects_to_be_used = readRDS("../data/objects_to_be_used.RDS")
 
 
 #We fit a simplified model first on a smaller subset of the data, using six years of data.
@@ -37,9 +38,9 @@ df_month=objects_to_be_used$df_month
 Q_s1=objects_to_be_used$Q_s1
 ns=nrow(Q_s1)
 
-df$basis_tmin=objects_to_be_used2$basis_tmin
-df$basis_pdsi=objects_to_be_used2$basis_pdsi
-df$urban_basis1_pdsi=objects_to_be_used2$urban_basis1_pdsi
+df$basis_tmin=objects_to_be_used$basis_tmin
+df$basis_pdsi=objects_to_be_used$basis_pdsi
+df$urban_basis1_pdsi=objects_to_be_used$urban_basis1_pdsi
 
 
 
@@ -52,7 +53,7 @@ Q_RW2 = inla.scale.model(Q_RW2_before,list(A=A_t,e=rep(0,2)))
 Q_ICAR=inla.scale.model(Q_s1,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
 
 Q_st=kronecker(Q_RW2,Q_ICAR)
-source("R/SpaceTimeProjConstr.R")
+source("../R/SpaceTimeProjConstr.R")
 
 #Knorr-Held:
 
