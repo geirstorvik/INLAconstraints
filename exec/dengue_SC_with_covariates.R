@@ -1,29 +1,3 @@
-
-# Script taken from Rachel Lowe (2021) and altered by Aanes and Storvik. Only parts of the scripts are used.
-# https://github.com/drrachellowe/hydromet_dengue
-
-# Step 0: load packages and pre-processed data
-# Step 1: formulate a baseline model on a subset of the data, including spatiotemporal random effects
-# Step 2: fit model on smaller dataset, 8 years of data using data for month 6 only
-
-#NB: We remove one region to get a fully connected graph.
-
-# Step 0: load packages and pre-processed data
-rm(list=ls())
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-library(INLA)
-INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
-INLA::inla.pardiso.check()
-library(SpaceTimePaper)
-library(Matrix)
-library(sf)
-library(spdep)
-library(data.table)
-library(dlnm)
-library(ggplot2)
-library(xtable)
-
-
 # Script taken from Rachel Lowe (2021) and altered by Aanes and Storvik. Only parts of the scripts are used.
 # https://github.com/drrachellowe/hydromet_dengue
 
@@ -50,8 +24,8 @@ library(xtable)
 
 nt=7
 
-#objects_to_be_used=dengue_data_set_up(nt=nt)
-objects_to_be_used = readRDS("../data/objects_to_be_used.RDS")
+source("../R/dengue_data_set_up2.R")
+objects_to_be_used=dengue_data_set_up_2(nt=nt)
 
 #objects_to_be_used = readRDS("exec/objects_to_be_used.RDS")
 
@@ -73,6 +47,8 @@ Q_RW2 = inla.scale.model(Q_RW2_before,list(A=A_t,e=rep(0,2)))
 #Q_RW2_scaled=inla.scale.model(GMRF_RW(order=2,n=10),constr = list(A=rbind(rep(1,nt),seq(1,nt)),e=rep(0,2)))
 Q_ICAR=inla.scale.model(Q_s1,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
 
+Q_st=kronecker(Q_RW2,Q_ICAR)
+
 Q_RW2 = Q_RW2_before
 Q_ICAR = Q_s1
 Q_st=kronecker(Q_RW2,Q_ICAR)
@@ -80,39 +56,21 @@ source("../R/SpaceTimeProjConstr.R")
 
 PC = SpaceTimeProjConstr(ns,nt,type ="SC")
 
-#Make graphs for the temporal components
-library(Matrix)
-graph.ar = function(nt)
-{
-  Adj = diag(c(1,rep(2,nt-2),1))
-  for(i in 2:nt)
-  {
-    Adj[i,i-1] = -1
-    Adj[i-1,i] = -1
-  }
-  as(Adj,"sparseMatrix")
-}
-graph.T1 = graph.ar(12)
-graph.T2 = graph.ar(nt)
-Q_s1 = as(Q_s1,"sparseMatrix")
-
-
-
 baseformula <- Y ~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
   #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
+  #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
   f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))#+f(S1T2_iid,model="iid")
 
 
 baseformula.proj <- Y~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
-  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
   #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
   #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
+  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
   #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))#+f(S1T2_iid,model="iid")
@@ -126,14 +84,14 @@ if(!file.exists("dengue.sc.proj.RDS") | !file.exists("dengue.sc.RDS"))
   run.sc = TRUE
 if(run.sc)
 {
-  dengue.sc.proj=inla(baseformula.proj, family = "poisson",num.threads =4,inla.mode="experimental",
+  dengue.sc.proj=inla(baseformula.proj, family = "poisson",num.threads =10, #inla.mode="experimental",
                          control.fixed = list(
                            prec.intercept =0.01),verbose=T,
                          #control.inla=list(strategy="gaussian" ),
                          data=df)
   saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
 
-  dengue.sc=inla(baseformula, family = "poisson",data =df,num.threads =4,inla.mode="experimental",
+  dengue.sc=inla(baseformula, family = "poisson",data =df,num.threads =10, #inla.mode="experimental",
                   control.fixed = list(
                     prec.intercept =0.01),verbose=T
                   #,control.inla=list(strategy="gaussian" )
@@ -157,7 +115,7 @@ tab.sc2 = cbind(tab.sc,tab.sc.proj)
 rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_T_iid","tau_theta","tau_S_iid","tau_delta")
 rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_theta","tau_delta")
 xtable(tab.sc2,digits=3)
-saveRDS(tab.sc2,file="dengue_tab_sc2.RDS")
+saveRDS(tab.goicia2,file="dengue_tab_sc2.RDS")
 
 #Plotting interaction terms, mean and standard deviations
 plotData=data.table::data.table(StandardModelE=dengue.sc$summary.random$S1T2$mean,
@@ -168,12 +126,11 @@ plotData=data.table::data.table(StandardModelE=dengue.sc$summary.random$S1T2$mea
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))
-  ggsave("Dengue_EstimatedMeanSimulatedDateSC.pdf",height=5,width=5)
+  ggsave("Dengue_EstimatedMeanSimulatedDatesc.pdf",height=5,width=5)
 ggplot(data=plotData)+geom_point(aes(y=StandardModelSD,x=NewParametrizationSD),colour="red",size=1.25)+xlab("Estimated sd new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated sd standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))#+
-ggsave("Dengue_EstimatedSDSimulatedDataSC.pdf",height=5,width=5)
-
+ggsave("Dengue_EstimatedSDSimulatedDatasc.pdf",height=5,width=5)
 
 #Comparison of marginal likelihoods
 #Need to correct for the standard method
@@ -187,4 +144,3 @@ val = eigen(Sig.cond)$val
 np = diff(dim(A))
 logdet = sum(log(val[1:np]))
 show(c(dengue.sc$mlik[1,1]-0.5*logdet,dengue.sc.proj$mlik[1,1])/nrow(df))
-
