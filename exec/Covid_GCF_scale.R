@@ -55,7 +55,7 @@ Q_ICAR = Qs
 Q_st=kronecker(Q_RW2,Q_ICAR)
 #Q_st = inla.scale.model(Q_st,list(A=D.g,e=rep(0,nrow(D.g))))
 source("../R/SpaceTimeProjConstr.R")
-PC = SpaceTimeProjConstr(ns,nt,dim="time",type="SC")
+PC = SpaceTimeProjConstr(ns,nt,dim="time")
 
 df$T2 = df$T1
 df$county2 = df$county
@@ -83,53 +83,53 @@ baseformula =cases~offset(E)+#weekday+
 
 
 
-covid.SC.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
+covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
                          control.fixed = list(
                            prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
-saveRDS(covid.SC.proj,file="covid.SC.proj.RDS")
+#saveRDS(covid.goicoa.proj,file="covid.goicoa.proj.RDS")
   
-covid.SC=inla(baseformula, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
+covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
                     control.fixed = list(
                       prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
-saveRDS(covid.SC,file="covid.SC.RDS")
+#saveRDS(covid.goicoa,file="covid.goicoa.RDS")
 
-show(c(covid.SC$cpu.used[4],covid.SC.proj$cpu.used[4]))
+show(c(covid.goicoa$cpu.used[4],covid.goicoa.proj$cpu.used[4]))
 
 #Table for latex file
-tab.SC = rbind(covid.SC$summary.fixed[,1:2],
-                   covid.SC$summary.hyperpar[,1:2])
-tab.SC.proj = rbind(covid.SC.proj$summary.fixed[,1:2],
-                        covid.SC.proj$summary.hyperpar[,1:2])
-tab.SC2 = cbind(tab.SC,tab.SC.proj)
-#rownames(tab.SC2) = c("mu","tau_alpha","tau_theta","tau_delta")
-xtable(tab.SC2,digits=3)
+tab.goicoa = rbind(covid.goicoa$summary.fixed[,1:2],
+                   covid.goicoa$summary.hyperpar[,1:2])
+tab.goicoa.proj = rbind(covid.goicoa.proj$summary.fixed[,1:2],
+                        covid.goicoa.proj$summary.hyperpar[,1:2])
+tab.goicoa2 = cbind(tab.goicoa,tab.goicoa.proj)
+#rownames(tab.goicoa2) = c("mu","tau_alpha","tau_theta","tau_delta")
+xtable(tab.goicoa2,digits=3)
 
 #Plotting interaction terms, mean and standard deviations
-plotData=data.table::data.table(StandardModelE=covid.SC$summary.random$S1T1$mean,
-                                NewParametrizationE=covid.SC.proj$summary.random$S1T1$mean[1:(ns*nt)],
-                                StandardModelSD=covid.SC$summary.random$S1T1$sd,
-                                NewParametrizationSD=covid.SC.proj$summary.random$S1T1$sd[1:(ns*nt)])
+plotData=data.table::data.table(StandardModelE=covid.goicoa$summary.random$S1T1$mean,
+                                NewParametrizationE=covid.goicoa.proj$summary.random$S1T1$mean[1:(ns*nt)],
+                                StandardModelSD=covid.goicoa$summary.random$S1T1$sd,
+                                NewParametrizationSD=covid.goicoa.proj$summary.random$S1T1$sd[1:(ns*nt)])
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))
-ggsave("Covid_EstimatedMeanSimulatedDateSC.pdf",height=5,width=5)
+ggsave("Covid_EstimatedMeanSimulatedDateGoicoa.pdf",height=5,width=5)
 ggplot(data=plotData)+geom_point(aes(y=StandardModelSD,x=NewParametrizationSD),colour="red",size=1.25)+xlab("Estimated sd new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated sd standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))#+
-ggsave("Covid_EstimatedSDSimulatedDataSC.pdf",height=5,width=5)
+ggsave("Covid_EstimatedSDSimulatedDataGoicoa.pdf",height=5,width=5)
 
-plotData=data.table::data.table(StandardModelE=covid.SC$summary.random$T1$mean,
-                                NewParametrizationE=covid.SC.proj$summary.random$T1$mean,
-                                StandardModelSD=covid.SC$summary.random$T1$sd,
-                                NewParametrizationSD=covid.SC.proj$summary.random$T1$sd)
+plotData=data.table::data.table(StandardModelE=covid.goicoa$summary.random$T1$mean,
+                                NewParametrizationE=covid.goicoa.proj$summary.random$T1$mean,
+                                StandardModelSD=covid.goicoa$summary.random$T1$sd,
+                                NewParametrizationSD=covid.goicoa.proj$summary.random$T1$sd)
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))
 
-plotData=data.table::data.table(StandardModelE=covid.SC$summary.random$county$mean,
-                                NewParametrizationE=covid.SC.proj$summary.random$county$mean,
-                                StandardModelSD=covid.SC$summary.random$county$sd,
-                                NewParametrizationSD=covid.SC.proj$summary.random$county$sd)
+plotData=data.table::data.table(StandardModelE=covid.goicoa$summary.random$county$mean,
+                                NewParametrizationE=covid.goicoa.proj$summary.random$county$mean,
+                                StandardModelSD=covid.goicoa$summary.random$county$sd,
+                                NewParametrizationSD=covid.goicoa.proj$summary.random$county$sd)
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))
@@ -142,15 +142,15 @@ source('../R/LikCorrectGeneric0.R')
 mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps*scS)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps*scT)
 mcorST = LikCorrectGeneric0(Q_st,PC$A,eps*scT*scS)
-#mcorST = LikCorrectGeneric0(Q_st,PC$A,eps)
-show(c(covid.SC$mlik[1,1]+mcorS+mcorT+mcorST,covid.SC.proj$mlik[1,1]+mcorS+mcorT)/nrow(df))
+mcorST = LikCorrectGeneric0(Q_st,PC$A,eps)
+show(c(covid.goicoa$mlik[1,1]+mcorS+mcorT+mcorST,covid.goicoa.proj$mlik[1,1]+mcorS+mcorT)/nrow(df))
 
 dates = df$date[df$location_code=="county03"]
-xx = data.frame(date=dates,value=c(covid.SC.proj$summary.random$T1$mean,covid.SC.proj$summary.random$T2$mean),
+xx = data.frame(date=dates,value=c(covid.goicoa.proj$summary.random$T1$mean,covid.goicoa.proj$summary.random$T2$mean),
                 variable=c(rep(1,nt),rep(2,nt)))
 xx$variable = as.character(xx$variable)
 ggplot(xx, aes(x = date, y = value)) + 
   geom_line(aes(color = variable), size = 1) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   theme_minimal()
-plot.ts(cbind(covid.SC.proj$summary.random$T1$mean,covid.SC.proj$summary.random$T2$mean),plot.type="single",col=1:2)
+plot.ts(cbind(covid.goicoa.proj$summary.random$T1$mean,covid.goicoa.proj$summary.random$T2$mean),plot.type="single",col=1:2)

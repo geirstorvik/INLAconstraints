@@ -11,7 +11,7 @@ library(dlnm)
 library(ggplot2)
 library(xtable)
 
-rm(list=ls())
+#rm(list=ls())
 
 #Read data and make indices for temporal and interaction terms
 d = readRDS("../data/coviddata.RDS")
@@ -24,7 +24,7 @@ df$county = as.numeric(as.factor(df$location_code))
 ns = max(df$county)
 
 #Reduce number of time points
-nt = 100
+nt = 500
 df = df[df$T1<(nt+1),]
 
 df$S1T1 = (df$T1-1)*ns+df$county
@@ -54,7 +54,7 @@ Q_ICAR=inla.scale.model(Qs+diag(ns)*eps,constr=list(A=matrix(rep(1,ns),nrow=1),e
 
 Q_st=kronecker(Q_RW2,Q_ICAR)
 #Q_st = inla.scale.model(Q_st,list(A=D.g,e=rep(0,nrow(D.g))))
-source("R/SpaceTimeProjConstr.R")
+source("../R/SpaceTimeProjConstr.R")
 PC = SpaceTimeProjConstr(ns,nt,dim="time")
 
 df$T2 = df$T1
@@ -67,31 +67,31 @@ scS = scT = 1
 df$E = log(df$pop)
 baseformula.proj=cases~offset(E)+#weekday+
   f(T1,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps*scT,constr=T)+
-  f(T2,model="iid",constr=TRUE)+
+  #f(T2,model="iid",constr=TRUE)+
   f(county,model="generic0",Cmatrix=Q_ICAR+diag(ns)*eps*scS,constr = T) +
-  f(county2,model="iid",constr=TRUE)+
+  #f(county2,model="iid",constr=TRUE)+
   f(S1T1,Cmatrix=Q_st+diag(nrow(Q_st))*eps*(scT*scS),precision=kap,model="z",Z=as.matrix(PC$P),constr=F,
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
 baseformula =cases~offset(E)+#weekday+
   f(T1,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps*scT,constr=T)+
-  f(T2,model="iid",constr=TRUE)+
+  #f(T2,model="iid",constr=TRUE)+
   f(county,model="generic0",Cmatrix=Q_ICAR+diag(ns)*eps*scS,constr=T) +
-  f(county2,model="iid",constr=TRUE)+
+  #f(county2,model="iid",constr=TRUE)+
   f(S1T1,model="generic0",Cmatrix=Q_st+diag(ns*nt)*eps*(scT*scS),constr=F,
      extraconstr=list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
 
 
 
-covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =4,inla.mode="experimental",
+covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
                          control.fixed = list(
                            prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
-#saveRDS(covid.goicoa.proj,file="covid.goicoa.proj.RDS")
+saveRDS(covid.goicoa.proj,file="covid.goicoa.proj.RDS")
   
-covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =4,inla.mode="experimental",
+covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
                     control.fixed = list(
                       prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
-#saveRDS(covid.goicoa,file="covid.goicoa.RDS")
+saveRDS(covid.goicoa,file="covid.goicoa.RDS")
 
 show(c(covid.goicoa$cpu.used[4],covid.goicoa.proj$cpu.used[4]))
 
@@ -112,11 +112,11 @@ plotData=data.table::data.table(StandardModelE=covid.goicoa$summary.random$S1T1$
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))
-ggsave("Covid_EstimatedMeanSimulatedDateGoicoa.pdf")
+ggsave("Covid_EstimatedMeanSimulatedDateGoicoa.pdf",height=5,width=5)
 ggplot(data=plotData)+geom_point(aes(y=StandardModelSD,x=NewParametrizationSD),colour="red",size=1.25)+xlab("Estimated sd new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
   ggtitle("Estimated sd standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))#+
-ggsave("Covid_EstimatedSDSimulatedDataGoicoa.pdf")
+ggsave("Covid_EstimatedSDSimulatedDataGoicoa.pdf",height=5,width=5)
 
 plotData=data.table::data.table(StandardModelE=covid.goicoa$summary.random$T1$mean,
                                 NewParametrizationE=covid.goicoa.proj$summary.random$T1$mean,
@@ -138,12 +138,12 @@ ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),col
 
 #Comparison of marginal likelihoods
 #Need to correct for the standard method
-source('~/prj/SpaceTimePaper/R/LikCorrectGeneric0.R')
+source('../R/LikCorrectGeneric0.R')
 mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps*scS)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps*scT)
 mcorST = LikCorrectGeneric0(Q_st,PC$A,eps*scT*scS)
-mcorST = LikCorrectGeneric0(Q_st,PC$A,eps)
-show(c(covid.goicoa$mlik[1,1]+mcorS+mcorT+mcorST,covid.goicoa.proj$mlik[1,1]+mcorS+mcorT))
+#mcorST = LikCorrectGeneric0(Q_st,PC$A,eps)
+show(c(covid.goicoa$mlik[1,1]+mcorS+mcorT+mcorST,covid.goicoa.proj$mlik[1,1]+mcorS+mcorT)/nrow(df))
 
 dates = df$date[df$location_code=="county03"]
 xx = data.frame(date=dates,value=c(covid.goicoa.proj$summary.random$T1$mean,covid.goicoa.proj$summary.random$T2$mean),

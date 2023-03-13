@@ -34,33 +34,34 @@ df=objects_to_be_used$df
 basis_tmin=objects_to_be_used$basis_tmin
 basis_pdsi=objects_to_be_used$basis_pdsi
 urban_basis1_pdsi=objects_to_be_used$urban_basis1_pdsi
-Q_ICAR=objects_to_be_used$Q_s1
-ns=nrow(Q_ICAR)
+Q_s1=objects_to_be_used$Q_s1
+ns=nrow(Q_s1)
 df=df[df$T2<=nt,]
 df$S1T2_iid=df$S1T2
 
-Q_RW2=GMRF_RW(n=nt,order=2)
+Q_RW2_before=GMRF_RW(n=nt,order=2)
+#Scale model
+A_t=rbind(matrix(rep(1,nt),nrow=1),seq(1,nt))
+Q_RW2 = inla.scale.model(Q_RW2_before,list(A=A_t,e=rep(0,2)))
 
-SCALED = TRUE
-if(SCALED)
-{
-  #Scale model
-  A_t=rbind(matrix(rep(1,nt),nrow=1),seq(1,nt))
-  Q_RW2 = inla.scale.model(Q_RW2,list(A=A_t,e=rep(0,2)))
-  Q_ICAR=inla.scale.model(Q_ICAR,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
-  
-}
+#Q_RW2_scaled=inla.scale.model(GMRF_RW(order=2,n=10),constr = list(A=rbind(rep(1,nt),seq(1,nt)),e=rep(0,2)))
+Q_ICAR=inla.scale.model(Q_s1,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
+
 Q_st=kronecker(Q_RW2,Q_ICAR)
 
+Q_RW2 = Q_RW2_before
+Q_ICAR = Q_s1
+Q_st=kronecker(Q_RW2,Q_ICAR)
 source("../R/SpaceTimeProjConstr.R")
+
 PC = SpaceTimeProjConstr(ns,nt,type ="GCF")
 
 baseformula <- Y ~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
   #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
   #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_ICAR,constr=T)+
-  #f(S1,model="bym2",diagonal=eps,graph=Q_ICAR,constr=T)+
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))#+f(S1T2_iid,model="iid")
 
@@ -69,18 +70,23 @@ baseformula.proj <- Y~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pd
   #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
   #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_ICAR,constr=T)+
-  #f(S1,model="bym2",diagonal=eps,graph=Q_ICAR,constr=T)+
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))#+f(S1T2_iid,model="iid")
 
+foo = eigen(Q_st)
+A = foo$vectors
+P = diag(ns*nt)-t(A)%*%A
 baseformula.mix <- Y~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
   #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
   #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_ICAR,constr=T)+
-  #f(S1,model="bym2",diagonal=eps,graph=Q_ICAR,constr=T)+
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="z",Z=as.matrix(P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F)#+f(S1T2_iid,model="iid")
+
+
 
 eps = 1e-05
 kap = 1e06
