@@ -28,7 +28,7 @@ SpaceTimeProjConstr = function(ns,nt,type="GCF",dim="DEFAULT")
     A1 = kronecker(matrix(rep(1,nt),nrow=1),Diagonal(ns))
     A2=kronecker(Diagonal(nt),matrix(rep(1,ns),nrow=1))
     A2 = A2[-nrow(A2),]
-    P = Diagonal(ns*nt)-crossprod(A1)/nt
+    P = Diagonal(ns*nt)-Matrix::crossprod(A1)/nt
     P1 = P
     A = rbind(A1,A2)
     B1 = NULL
@@ -38,7 +38,7 @@ SpaceTimeProjConstr = function(ns,nt,type="GCF",dim="DEFAULT")
       tstar = tstar/sqrt(sum(tstar^2))
       B1 = kronecker(matrix(tstar,nrow=1),Diagonal(ns))
       B1 = B1[-nrow(B1),]
-      P = P - crossprod(B1)
+      P = P - Matrix::crossprod(B1)
       A = rbind(A,B1)
     }
     
@@ -49,7 +49,7 @@ SpaceTimeProjConstr = function(ns,nt,type="GCF",dim="DEFAULT")
   {
     A1 = kronecker(Diagonal(nt),matrix(rep(1,ns),nrow=1))
     A2=kronecker(matrix(rep(1,nt),nrow=1),Diagonal(ns))
-    P = Diagonal(ns*nt)-crossprod(A1)/ns
+    P = Diagonal(ns*nt)-Matrix::crossprod(A1)/ns
     A2 = A2[-nrow(A2),]
     A = rbind(A1,A2)
     return(list(P=P,A2=cbind(A2,0*A2),A=A))
