@@ -1,7 +1,7 @@
 library(Matrix)
 library(SpaceTimePaper)
 library(INLA)
-INLA::inla.setOption("pardiso.license","/mn/sarpanitu/ansatte-u2/geirs/sys/licenses/pardiso.lic")
+INLA::inla.setOption("pardiso.license","/nr/samba/user/storvik/sys/licences/pardiso.lic")
 INLA::inla.pardiso.check()
 library(data.table)
 library(ggplot2)
@@ -12,6 +12,7 @@ rm(list=ls())
 dataDir <- system.file("extdata", package = "spatioTemporalIndices")
 dataDir <- system.file("extdata", package = "SpaceTimePaper")
 data.sum.zero=readr::read_rds(paste0(dataDir,"/SpatioTemporalDatasetNew.RDS"))
+#data.sum.zero = data.sum.zero[1:5440,]
 graph=system.file("demodata/germany.graph", package="INLA")
 
 Q_ICAR=INLA::inla.graph2matrix(graph)
@@ -48,9 +49,9 @@ resINLA2.full.GCF.Constr.Projector=
          f(interaction,model="z",precision=kap,Z=PC$P,Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2)))),
        data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
-       control.predictor=list(compute=TRUE))
+       #control.predictor=list(compute=TRUE)
+       inla.mode="experimental",control.inla=list(strategy="gaussian" ))
 saveRDS(resINLA2.full.GCF.Constr.Projector,file="Sim.goicoa.proj.RDS")
-
 
 resINLA2.full.GCF.Constr.ordinary=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
@@ -58,7 +59,8 @@ resINLA2.full.GCF.Constr.ordinary=
          f(interaction,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A)))),
        data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
-       control.predictor=list(compute=TRUE),inla.mode="experimental")
+       #control.predictor=list(compute=TRUE))
+       inla.mode="experimental",control.inla=list(strategy="gaussian" ))
 saveRDS(resINLA2.full.GCF.Constr.ordinary,file="Sim.goicoa.ord.RDS")
 
 show(c(resINLA2.full.GCF.Constr.ordinary$cpu.used[4],resINLA2.full.GCF.Constr.Projector$cpu.used[4]))
@@ -75,10 +77,10 @@ ggplot(data=plotData)+geom_point(aes(y=StandardModelSD,x=NewParametrizationSD),c
 ggsave("EstimatedSDSimulatedData_GCF.pdf")
 
 #Calculate marginal likelihoods
-source('../R/LikCorrectGeneric0.R')
+#source('../R/LikCorrectGeneric0.R')
 mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
-mcorST = LikCorrectGeneric0(Q_st,PC$A,eps)
+mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
 show(c(resINLA2.full.GCF.Constr.ordinary$mlik[1,1]+mcorS+mcorT+mcorST,
        resINLA2.full.GCF.Constr.Projector$mlik[1,1]+mcorS+mcorT)/nrow(data.sum.zero))
 
@@ -91,15 +93,17 @@ resINLA2.full.SC.Constr.Projector=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
          f(interaction,model="z",precision=kap,Z=PC$P,Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
-           extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(A_extra)))),
-       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=4,control.predictor=list(compute=TRUE))#,inla.mode="experimental")
+           extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2)))),
+       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       control.predictor=list(compute=TRUE),inla.mode="experimental")
 
 resINLA2.full.SC.Constr.ordinary=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
          f(interaction,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A)))),
-       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=4,control.predictor=list(compute=TRUE))#,inla.mode="experimental")
+       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       control.predictor=list(compute=TRUE),inla.mode="experimental")
 
 show(c(resINLA2.full.SC.Constr.ordinary$cpu.used[4],resINLA2.full.SC.Constr.Projector$cpu.used[4]))
 
@@ -115,10 +119,10 @@ ggplot(data=plotData)+geom_point(aes(y=StandardModelSD,x=NewParametrizationSD),c
 ggsave("EstimatedSDSimulatedData_SC.pdf")
 
 #Calculate marginal likelihoods
-source('../R/LikCorrectGeneric0.R')
+#source('../R/LikCorrectGeneric0.R')
 mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
-mcorST = LikCorrectGeneric0(Q_st,PC$A,eps)
+mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
 show(c(resINLA2.full.SC.Constr.ordinary$mlik[1,1]+mcorS+mcorT+mcorST,
        resINLA2.full.SC.Constr.Projector$mlik[1,1]+mcorS+mcorT)/nrow(data.sum.zero))
 
