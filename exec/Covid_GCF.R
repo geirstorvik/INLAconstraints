@@ -14,8 +14,8 @@ library(xtable)
 rm(list=ls())
 
 #Read data and make indices for temporal and interaction terms
-d = readRDS("../data/coviddata.RDS")
-df = d$data
+data(coviddata)
+df = coviddata$data
 df$weekday = as.factor(weekdays(df$date))
 df = df[df$date>as.Date("2020-10-01"),]
 df$T1 = as.numeric(df$date-df$date[1]+1)
@@ -31,7 +31,7 @@ df$S1T1 = (df$T1-1)*ns+df$county
 
 
 #Make precision matrices
-Q_ICAR = -d$adj
+Q_ICAR = -coviddata$adj
 for(i in 1:ns)
   Q_ICAR[i,i] = -sum(Q_ICAR[i,-i])
 Q_RW2=GMRF_RW(n=nt,order=2)
@@ -65,26 +65,17 @@ baseformula =cases~offset(E)+
      extraconstr=list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
 
 #INLA calls
-covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
+covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,inla.mode="experimental",
                          control.fixed = list(
                            prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
 #saveRDS(covid.goicoa.proj,file="covid.goicoa.proj.RDS")
   
-covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =10,#inla.mode="experimental",
+covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =10,inla.mode="experimental",
                     control.fixed = list(
                       prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
 #saveRDS(covid.goicoa,file="covid.goicoa.RDS")
 
 show(c(covid.goicoa$cpu.used[4],covid.goicoa.proj$cpu.used[4]))
-
-#Table for latex file
-tab.goicoa = rbind(covid.goicoa$summary.fixed[,1:2],
-                   covid.goicoa$summary.hyperpar[,1:2])
-tab.goicoa.proj = rbind(covid.goicoa.proj$summary.fixed[,1:2],
-                        covid.goicoa.proj$summary.hyperpar[,1:2])
-tab.goicoa2 = cbind(tab.goicoa,tab.goicoa.proj)
-#rownames(tab.goicoa2) = c("mu","tau_alpha","tau_theta","tau_delta")
-xtable(tab.goicoa2,digits=3)
 
 #Plotting interaction terms, mean and standard deviations
 plotData=data.table::data.table(StandardModelE=covid.goicoa$summary.random$S1T1$mean,
@@ -106,3 +97,12 @@ mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
 mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
 show(c(covid.goicoa$mlik[1,1]+mcorS+mcorT+mcorST,covid.goicoa.proj$mlik[1,1]+mcorS+mcorT)/nrow(df))
+
+#Table for latex file
+tab.goicoa = rbind(covid.goicoa$summary.fixed[,1:2],
+                   covid.goicoa$summary.hyperpar[,1:2])
+tab.goicoa.proj = rbind(covid.goicoa.proj$summary.fixed[,1:2],
+                        covid.goicoa.proj$summary.hyperpar[,1:2])
+tab.goicoa2 = cbind(tab.goicoa,tab.goicoa.proj)
+xtable(tab.goicoa2,digits=3)
+
