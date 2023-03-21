@@ -24,27 +24,23 @@ library(xtable)
 
 nt=7
 
-source("../R/dengue_data_set_up2.R")
-objects_to_be_used=dengue_data_set_up_2(nt=nt)
+data(denguedata)
 
-#objects_to_be_used = readRDS("exec/objects_to_be_used.RDS")
 
 #We fit a simplified model first on a smaller subset of the data, using six years of data.
-df=objects_to_be_used$df
-basis_tmin=objects_to_be_used$basis_tmin
-basis_pdsi=objects_to_be_used$basis_pdsi
-urban_basis1_pdsi=objects_to_be_used$urban_basis1_pdsi
-Q_s1=objects_to_be_used$Q_s1
+df=denguedata$df
+basis_tmin=denguedata$basis_tmin
+basis_pdsi=denguedata$basis_pdsi
+urban_basis1_pdsi=denguedata$urban_basis1_pdsi
+Q_s1=denguedata$Q_s1
 ns=nrow(Q_s1)
 df=df[df$T2<=nt,]
-df$S1T2_iid=df$S1T2
 
 Q_RW2_before=GMRF_RW(n=nt,order=2)
 #Scale model
 A_t=rbind(matrix(rep(1,nt),nrow=1),seq(1,nt))
 Q_RW2 = inla.scale.model(Q_RW2_before,list(A=A_t,e=rep(0,2)))
 
-#Q_RW2_scaled=inla.scale.model(GMRF_RW(order=2,n=10),constr = list(A=rbind(rep(1,nt),seq(1,nt)),e=rep(0,2)))
 Q_ICAR=inla.scale.model(Q_s1,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
 
 Q_st=kronecker(Q_RW2,Q_ICAR)
@@ -52,28 +48,21 @@ Q_st=kronecker(Q_RW2,Q_ICAR)
 Q_RW2 = Q_RW2_before
 Q_ICAR = Q_s1
 Q_st=kronecker(Q_RW2,Q_ICAR)
-source("../R/SpaceTimeProjConstr.R")
 
 PC = SpaceTimeProjConstr(ns,nt,type ="SC")
 
 baseformula <- Y ~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
-  #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
-  #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
   f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
-    extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))#+f(S1T2_iid,model="iid")
+    extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
 
 
 baseformula.proj <- Y~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
-  #f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
-  #f(T2,model="bym2",diagonal=eps,graph=graph.T2,constr=T) +
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
   f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  #f(S1,model="bym2",diagonal=eps,graph=Q_s1,constr=T)+
   f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
-    extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))#+f(S1T2_iid,model="iid")
+    extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
 
 
@@ -84,18 +73,18 @@ if(!file.exists("dengue.sc.proj.RDS") | !file.exists("dengue.sc.RDS"))
   run.sc = TRUE
 if(run.sc)
 {
-  dengue.sc.proj=inla(baseformula.proj, family = "poisson",num.threads =10, #inla.mode="experimental",
-                         control.fixed = list(
-                           prec.intercept =0.01),verbose=T,
-                         #control.inla=list(strategy="gaussian" ),
-                         data=df)
+  dengue.sc.proj=inla(baseformula.proj, family = "nbinomial",data =df,num.threads =10, 
+                      inla.mode="experimental",
+                      control.fixed = list(
+                      prec.intercept =0.01),verbose=T,
+                      control.inla=list(strategy="gaussian" ))
   saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
 
-  dengue.sc=inla(baseformula, family = "poisson",data =df,num.threads =10, #inla.mode="experimental",
-                  control.fixed = list(
-                    prec.intercept =0.01),verbose=T
-                  #,control.inla=list(strategy="gaussian" )
-                  )
+  dengue.sc=inla(baseformula, family = "nbinomial",data =df,num.threads =10, 
+                 inla.mode="experimental",
+                 control.fixed = list(
+                 prec.intercept =0.01),verbose=T,
+                 control.inla=list(strategy="gaussian" ))
   saveRDS(dengue.sc,file="dengue.sc.RDS")
 }
 if(!run.sc)
@@ -105,17 +94,6 @@ if(!run.sc)
 }
 
 show(c(dengue.sc$cpu.used[4],dengue.sc.proj$cpu.used[4]))
-
-#Table for latex file
-tab.sc = rbind(dengue.sc$summary.fixed[,1:2],
-                 dengue.sc$summary.hyperpar[,1:2])
-tab.sc.proj = rbind(dengue.sc.proj$summary.fixed[,1:2],
-                 dengue.sc.proj$summary.hyperpar[,1:2])
-tab.sc2 = cbind(tab.sc,tab.sc.proj)
-rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_T_iid","tau_theta","tau_S_iid","tau_delta")
-rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_theta","tau_delta")
-xtable(tab.sc2,digits=3)
-saveRDS(tab.goicia2,file="dengue_tab_sc2.RDS")
 
 #Plotting interaction terms, mean and standard deviations
 plotData=data.table::data.table(StandardModelE=dengue.sc$summary.random$S1T2$mean,
@@ -134,13 +112,20 @@ ggsave("Dengue_EstimatedSDSimulatedDatasc.pdf",height=5,width=5)
 
 #Comparison of marginal likelihoods
 #Need to correct for the standard method
+mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
+mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
+mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
+show(c(dengue.sc$mlik[1,1]+mcorS+mcorT+mcorST,
+       dengue.sc.proj$mlik[1,1]+mcorS+mcorT)/nrow(df))
 
-C2 = forceSymmetric(as(Q_st+diag(ns*nt)*eps,"sparseMatrix"))
-A = PC$A
-QA = solve(C2,t(A))
-AQA = forceSymmetric(solve(t(QA)%*%t(A)))
-Sig.cond = forceSymmetric(solve(C2)-QA%*%AQA%*%t(QA))
-val = eigen(Sig.cond)$val
-np = diff(dim(A))
-logdet = sum(log(val[1:np]))
-show(c(dengue.sc$mlik[1,1]-0.5*logdet,dengue.sc.proj$mlik[1,1])/nrow(df))
+#Table for latex file
+tab.sc = rbind(dengue.sc$summary.fixed[,1:2],
+               dengue.sc$summary.hyperpar[,1:2])
+tab.sc.proj = rbind(dengue.sc.proj$summary.fixed[,1:2],
+                    dengue.sc.proj$summary.hyperpar[,1:2])
+tab.sc2 = cbind(tab.sc,tab.sc.proj)
+rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_T_iid","tau_theta","tau_S_iid","tau_delta")
+rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_theta","tau_delta")
+xtable(tab.sc2,digits=3)
+saveRDS(tab.sc2,file="dengue_tab_sc2.RDS")
+
