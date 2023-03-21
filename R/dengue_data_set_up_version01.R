@@ -89,9 +89,9 @@ lag_tmax <- tsModel::Lag(data$tmax, group = data$micro_code, k = 0:nlag)
 lag_pdsi <- tsModel::Lag(data$pdsi, group = data$micro_code, k = 0:nlag)
 
 # Remove year 2000 from lagged climate variables
-lag_tmin <- lag_tmin[data$year > 2000,]
-lag_tmax <- lag_tmax[data$year > 2000,]
-lag_pdsi <- lag_pdsi[data$year > 2000,]
+lag_tmin <- lag_tmin[data$year_index<=nt & data$year > 2000,]
+lag_tmax <- lag_tmax[data$year_index<=nt& data$year > 2000,]
+lag_pdsi <- lag_pdsi[data$year_index<=nt & data$year > 2000,]
 
 data <- data[data$year > 2000,]
 data$year_index=data$year-2000
