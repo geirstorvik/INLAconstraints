@@ -5,6 +5,8 @@
 #' @param 'eps' The noise terms added to the diagonal
 #' 
 #' @return The correction factor (for the LOG-marginal likelohood)
+#' 
+#' @import data.table
 #'
 #' @export
 LikCorrectGeneric0 = function(Q,A,eps)
