@@ -49,44 +49,102 @@ Q_RW2 = Q_RW2_before
 Q_ICAR = Q_s1
 Q_st=kronecker(Q_RW2,Q_ICAR)
 
+graph.ar = function(nt)
+{
+  Adj = diag(c(1,rep(2,nt-2),1))
+  for(i in 2:nt)
+  {
+    Adj[i,i-1] = -1
+    Adj[i-1,i] = -1
+  }
+  as(Adj,"sparseMatrix")
+}
+graph.T1 = graph.ar(12)
+
 PC = SpaceTimeProjConstr(ns,nt,type ="SC")
 
-baseformula <- Y ~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+df2 = df
+df2 = cbind(df2,basis_tmin)
+
+baseformula <- Y ~ offset(log(E)) + Vu + 
+  basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
+  basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
+  basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
+  #basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+#  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
   f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
   f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
 
-
-baseformula.proj <- Y~ offset(log(E)) + basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+baseformula2 <- Y ~ offset(log(E)) + Vu + 
+  basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
+  basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
+  basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
+  #basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+  #  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
   f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
   f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
+  f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps/1000,constr=F,
+    extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
+
+
+baseformula.proj <- Y~ offset(log(E)) + Vu + #basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
+#  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
+  basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
+  basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
+  basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
+  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps/1000,constr=F,
+    extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
+
+baseformula.proj2 <- Y~ offset(log(E)) + Vu + basis_tmin + #basis_pdsi+ urban_basis1_pdsi + Vu+
+  #  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
+  #basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
+  #basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
+  #basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
+  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
+  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps/1000,constr=F,
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
 
-
 eps = 1e-05
-kap = 1e06
+kap = 1e07
 run.sc=FALSE
 if(!file.exists("dengue.sc.proj.RDS") | !file.exists("dengue.sc.RDS"))
   run.sc = TRUE
 if(run.sc)
 {
-  dengue.sc.proj=inla(baseformula.proj, family = "nbinomial",data =df,num.threads =10, 
+  dengue.sc.proj=inla(baseformula.proj, family = "nbinomial",data =df2,num.threads =10, 
                       inla.mode="experimental",
                       control.fixed = list(
-                      prec.intercept =0.01),verbose=T,
+                      prec.intercept =0.01),verbose=F,
                       control.inla=list(strategy="gaussian" ))
-  saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
+   saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
 
-  dengue.sc=inla(baseformula, family = "nbinomial",data =df,num.threads =10, 
+  dengue.sc.proj2=inla(baseformula.proj2, family = "nbinomial",data =df,num.threads =10, 
+                      inla.mode="experimental",
+                      control.fixed = list(
+                        prec.intercept =0.01),verbose=F,
+                      control.inla=list(strategy="gaussian" ))
+  saveRDS(dengue.sc.proj2,file="dengue.sc.proj2.RDS")
+  dengue.sc=inla(baseformula, family = "nbinomial",data =df2,num.threads =10, 
                  inla.mode="experimental",
                  control.fixed = list(
-                 prec.intercept =0.01),verbose=T,
+                 prec.intercept =0.01),verbose=F,
                  control.inla=list(strategy="gaussian" ))
-  saveRDS(dengue.sc,file="dengue.sc.RDS")
-}
+   saveRDS(dengue.sc,file="dengue.sc.RDS")
+
+   
+   dengue.sc2=inla(baseformula2, family = "nbinomial",data =df2,num.threads =10, 
+                  inla.mode="experimental",
+                  control.fixed = list(
+                    prec.intercept =0.01),verbose=F,
+                  control.inla=list(strategy="gaussian" ))
+   saveRDS(dengue.sc2,file="dengue.sc2.RDS")
+} 
 if(!run.sc)
 {
   dengue.sc.proj=readRDS("dengue.sc.proj.RDS")
@@ -100,6 +158,11 @@ plotData=data.table::data.table(StandardModelE=dengue.sc$summary.random$S1T2$mea
                                 NewParametrizationE=dengue.sc.proj$summary.random$S1T2$mean[1:(ns*nt)],
                                 StandardModelSD=dengue.sc$summary.random$S1T2$sd,
                                 NewParametrizationSD=dengue.sc.proj$summary.random$S1T2$sd[1:(ns*nt)])
+
+plotData=data.table::data.table(StandardModelE=dengue.sc$summary.random$T2$mean,
+                                NewParametrizationE=dengue.sc.proj$summary.random$T2$mean,
+                                StandardModelSD=dengue.sc$summary.random$T2$sd,
+                                NewParametrizationSD=dengue.sc.proj$summary.random$T2$sd)
 
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+
@@ -128,4 +191,16 @@ rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_T_iid","tau_theta","tau_
 rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_theta","tau_delta")
 xtable(tab.sc2,digits=3)
 saveRDS(tab.sc2,file="dengue_tab_sc2.RDS")
+
+foo1 = dengue.sc$marginals.hyperpar$`Precision for T2`
+foo2 = dengue.sc.proj$marginals.hyperpar$`Precision for T2`
+matplot(cbind(foo1[,1],foo2[,1]),cbind(foo1[,2],foo2[,2]),type="l")
+
+
+#Table for latex file
+tab.sc = rbind(dengue.sc.proj2$summary.fixed[,1:2],
+               dengue.sc.proj2$summary.hyperpar[,1:2])
+tab.sc.proj = rbind(dengue.sc.proj$summary.fixed[,1:2],
+                    dengue.sc.proj$summary.hyperpar[,1:2])
+tab.sc2 = cbind(tab.sc,tab.sc.proj)
 
