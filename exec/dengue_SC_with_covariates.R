@@ -32,86 +32,52 @@ df=denguedata$df
 basis_tmin=denguedata$basis_tmin
 basis_pdsi=denguedata$basis_pdsi
 urban_basis1_pdsi=denguedata$urban_basis1_pdsi
-Q_s1=denguedata$Q_s1
-ns=nrow(Q_s1)
+Q_ICAR=denguedata$Q_s1
+ns=nrow(Q_ICAR)
 df=df[df$T2<=nt,]
 
-Q_RW2_before=GMRF_RW(n=nt,order=2)
-#Scale model
-A_t=rbind(matrix(rep(1,nt),nrow=1),seq(1,nt))
-Q_RW2 = inla.scale.model(Q_RW2_before,list(A=A_t,e=rep(0,2)))
-
-Q_ICAR=inla.scale.model(Q_s1,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
-
-Q_st=kronecker(Q_RW2,Q_ICAR)
-
-Q_RW2 = Q_RW2_before
-Q_ICAR = Q_s1
-Q_st=kronecker(Q_RW2,Q_ICAR)
-
-graph.ar = function(nt)
+order = 1
+Q_RW=GMRF_RW(n=nt,order=order)
+SCALED = FALSE
+if(SCALED)
 {
-  Adj = diag(c(1,rep(2,nt-2),1))
-  for(i in 2:nt)
-  {
-    Adj[i,i-1] = -1
-    Adj[i-1,i] = -1
-  }
-  as(Adj,"sparseMatrix")
+  #Scale model
+  A_t=rbind(matrix(rep(1,nt),nrow=1),seq(1,nt))
+  Q_RW = inla.scale.model(Q_RW,list(A=A_t,e=rep(0,2)))
+  Q_ICAR=inla.scale.model(Q_ICAR,constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
+  
 }
-graph.T1 = graph.ar(12)
+
+Q_st=kronecker(Q_RW,Q_ICAR)
 
 PC = SpaceTimeProjConstr(ns,nt,type ="SC")
 
-df2 = df
-df2 = cbind(df2,basis_tmin)
+df2 = cbind(df,basis_tmin)
+
+eps = 1e-05
+kap = 1e06
 
 baseformula <- Y ~ offset(log(E)) + Vu + 
   basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
   basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
   basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
-  #basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
-#  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
-  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
+  f(T2,model="generic0",Cmatrix=Q_RW+diag(nt)*eps) +
+  #f(T2,model="rw1",constr=T,cyclic=TRUE) +
+  f(S1,model="generic0",Cmatrix = Q_ICAR+diag(ns)*eps,constr=T)+
   f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
 
-baseformula2 <- Y ~ offset(log(E)) + Vu + 
+
+baseformula.proj <- Y~ offset(log(E)) + Vu + 
   basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
   basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
   basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
-  #basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
-  #  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
-  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  f(S1T2,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps/1000,constr=F,
-    extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
-
-
-baseformula.proj <- Y~ offset(log(E)) + Vu + #basis_tmin + basis_pdsi+ urban_basis1_pdsi + Vu+
-#  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
-  basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
-  basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
-  basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
-  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps/1000,constr=F,
-    extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
-
-baseformula.proj2 <- Y~ offset(log(E)) + Vu + basis_tmin + #basis_pdsi+ urban_basis1_pdsi + Vu+
-  #  f(T1,model="bym2",constr=TRUE,graph=graph.T1,scale.model=T)+
-  #basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
-  #basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
-  #basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
-  f(T2,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_s1,constr=T)+
-  f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps/1000,constr=F,
+  f(T2,model="generic0",Cmatrix=Q_RW+diag(nt)*eps) +
+  f(S1,model="generic0",Cmatrix = Q_ICAR+diag(ns)*eps,constr=T)+
+  f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
 
-eps = 1e-05
-kap = 1e07
 run.sc=FALSE
 if(!file.exists("dengue.sc.proj.RDS") | !file.exists("dengue.sc.RDS"))
   run.sc = TRUE
@@ -124,26 +90,12 @@ if(run.sc)
                       control.inla=list(strategy="gaussian" ))
    saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
 
-  dengue.sc.proj2=inla(baseformula.proj2, family = "nbinomial",data =df,num.threads =10, 
-                      inla.mode="experimental",
-                      control.fixed = list(
-                        prec.intercept =0.01),verbose=F,
-                      control.inla=list(strategy="gaussian" ))
-  saveRDS(dengue.sc.proj2,file="dengue.sc.proj2.RDS")
   dengue.sc=inla(baseformula, family = "nbinomial",data =df2,num.threads =10, 
                  inla.mode="experimental",
                  control.fixed = list(
                  prec.intercept =0.01),verbose=F,
                  control.inla=list(strategy="gaussian" ))
    saveRDS(dengue.sc,file="dengue.sc.RDS")
-
-   
-   dengue.sc2=inla(baseformula2, family = "nbinomial",data =df2,num.threads =10, 
-                  inla.mode="experimental",
-                  control.fixed = list(
-                    prec.intercept =0.01),verbose=F,
-                  control.inla=list(strategy="gaussian" ))
-   saveRDS(dengue.sc2,file="dengue.sc2.RDS")
 } 
 if(!run.sc)
 {
@@ -176,7 +128,7 @@ ggsave("Dengue_EstimatedSDSimulatedDatasc.pdf",height=5,width=5)
 #Comparison of marginal likelihoods
 #Need to correct for the standard method
 mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
-mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
+mcorT = LikCorrectGeneric0(Q_RW,matrix(rep(1,nt),nrow=1),eps)
 mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
 show(c(dengue.sc$mlik[1,1]+mcorS+mcorT+mcorST,
        dengue.sc.proj$mlik[1,1]+mcorS+mcorT)/nrow(df))
@@ -187,6 +139,7 @@ tab.sc = rbind(dengue.sc$summary.fixed[,1:2],
 tab.sc.proj = rbind(dengue.sc.proj$summary.fixed[,1:2],
                     dengue.sc.proj$summary.hyperpar[,1:2])
 tab.sc2 = cbind(tab.sc,tab.sc.proj)
+show(round(tab.sc2,3))
 rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_T_iid","tau_theta","tau_S_iid","tau_delta")
 rownames(tab.sc2) = c("mu","Vu","Disp","tau_alpha","tau_theta","tau_delta")
 xtable(tab.sc2,digits=3)
@@ -198,9 +151,9 @@ matplot(cbind(foo1[,1],foo2[,1]),cbind(foo1[,2],foo2[,2]),type="l")
 
 
 #Table for latex file
-tab.sc = rbind(dengue.sc.proj2$summary.fixed[,1:2],
-               dengue.sc.proj2$summary.hyperpar[,1:2])
+tab.sc = rbind(dengue.sc$summary.fixed[,1:2],
+               dengue.sc2$summary.fixed[,1:2])
 tab.sc.proj = rbind(dengue.sc.proj$summary.fixed[,1:2],
-                    dengue.sc.proj$summary.hyperpar[,1:2])
+                    dengue.sc.proj2$summary.fixed[,1:2])
 tab.sc2 = cbind(tab.sc,tab.sc.proj)
 
