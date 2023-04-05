@@ -1,6 +1,8 @@
 library(Matrix)
 library(INLA)
 library(sparseMVN)
+library(SpaceTimePaper)
+library(data.table)
 #Number of time points
 
 
@@ -53,7 +55,7 @@ x_st_main=as.vector(x_st_main)-solveQst%*%t(A_st)%*%solve(A_st%*%solveQst%*%t(A_
 
 #NB: we must add the slope to get a simple sum to zero constraint. 
 slope = rnorm(1,mean=0,sd=2)
-slopes_st=rnorm(ns-1,mean=0,sd=3)
+slopes_st=slope + rnorm(ns,mean=0,sd=0.1)
 
 main=seq(1,ns*nt)%%ns
 main[main==0]=ns
@@ -69,6 +71,9 @@ DesignMatrixMainSpatial=model.matrix(~main_spatial-1,dataF)
 DesignMatrixMainTemporal=model.matrix(~main_temporal-1,dataF)
 DesignMatrixMainInteraction=model.matrix(~interaction-1,dataF)
 
+NewConstraints=kronecker(seq(1,nt),diag(ns))
+NewConstraintsScaled=NewConstraints/sqrt(colSums(NewConstraints^2))
+NewConstraintsScaledProjectorMatrix=diag(ns*nt)-(NewConstraintsScaled)%*%t(NewConstraintsScaled)
 
 
 mean_pred=DesignMatrixMainTemporal%*%as.vector(x_t_main)+DesignMatrixMainSpatial%*%as.vector(x_s_main)+DesignMatrixMainInteraction%*%as.vector(x_st_main)
@@ -85,7 +90,8 @@ data=do.call(rbind,replicate(30,data,simplify = FALSE))
 
 set.seed(20)
 data$Y=rpois(n=nrow(combined_pred),lambda=exp(-1+combined_pred))
-saveRDS(data,file="D:/SpatioTemporalDataset.RDS")
+#saveRDS(data,file="D:/SpatioTemporalDataset.RDS")
+m = nt
 min_limit_y=min(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
 max_limit_y=max(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
 
@@ -95,7 +101,4 @@ plot(x_t_main+slope*seq(1,m)/m,ylim=c(-1+min_limit_y,max_limit_y+1),type="l")
 points(x_t_main,col="blue",type="l")
 
 
-NewConstraints=kronecker(seq(1,nt),diag(ns))
-NewConstraintsScaled=NewConstraints/sqrt(colSums(NewConstraints^2))
-NewConstraintsScaledProjectorMatrix=diag(ns*nt)-(NewConstraintsScaled)%*%t(NewConstraintsScaled)
 
