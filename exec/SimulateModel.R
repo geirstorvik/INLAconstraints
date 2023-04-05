@@ -90,7 +90,11 @@ data=do.call(rbind,replicate(30,data,simplify = FALSE))
 
 set.seed(20)
 data$Y=rpois(n=nrow(combined_pred),lambda=exp(-1+combined_pred))
-#saveRDS(data,file="D:/SpatioTemporalDataset.RDS")
+
+SpatioTemporalDataset = data
+save(SpatioTemporalDataset,file="data/SpatioTemporalDataset.rda")
+
+#saveRDS(data,file="D:/SpatioTemposave(ralDataset.RDS")
 m = nt
 min_limit_y=min(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
 max_limit_y=max(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
