@@ -2,6 +2,7 @@ library(Matrix)
 library(INLA)
 library(sparseMVN)
 library(SpaceTimePaper)
+library(data.table)
 #Number of time points
 
 
@@ -73,7 +74,9 @@ data=do.call(rbind,replicate(30,data,simplify = FALSE))
 
 set.seed(20)
 data$Y=rpois(n=nrow(combined_pred),lambda=exp(combined_pred))
-saveRDS(data,file="D:/SpatioTemporalDataset.RDS")
+saveRDS(data,file="data/SpatioTemporalDataset.RDS")
+m= nt
+
 min_limit_y=min(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
 max_limit_y=max(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
 
