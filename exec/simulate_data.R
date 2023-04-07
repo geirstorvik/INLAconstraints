@@ -39,7 +39,7 @@ Q_st=kronecker(Q_RW2,Q_ICAR)
 set.seed(20)
 x_s_main= 0.25*INLA::inla.qsample(Q=Q_ICAR+diag(ns)*1e-05,n=1,mu=rep(0,ns),constr=list(A=matrix(rep(1,ns),nrow=1),e=0))
 x_t_main=0.2*INLA::inla.qsample(Q=Q_RW2+diag(nt)*1e-05,n=1,mu=rep(0,nt),constr=list(A=A_t,e=rep(0,2)))
-x_st_main=0.9*INLA::inla.qsample(Q=Q_st+diag(nt*ns)*1e-05,n=1,mu=rep(0,nt*ns),constr=list(A=A_st,e=rep(0,nrow(A_st))))
+x_st_main=0.25*INLA::inla.qsample(Q=Q_st+diag(nt*ns)*1e-05,n=1,mu=rep(0,nt*ns),constr=list(A=A_st,e=rep(0,nrow(A_st))))
 
 # #NB: we must add the slope to get a simple sum to zero constraint.
 # slope = rnorm(1,mean=0,sd=1)
@@ -67,23 +67,28 @@ spatial_C=t(kronecker(rep(1,nt),diag(ns))/sqrt(nt))
 #spatial_trend_C=t(kronecker(V,diag(ns)))
 temporal_main_C=rep(seq(1,nt)/norm(seq(1,nt),"2"),ns)
 mean_pred=DesignMatrixMainTemporal%*%as.vector(x_t_main)+DesignMatrixMainSpatial%*%as.vector(x_s_main)+DesignMatrixMainInteraction%*%as.vector(x_st_main)
-mean_pred_model=mean_pred-0.75
+mean_pred_model=mean_pred+1.5
 
 combined_pred=do.call(rbind,replicate(30,mean_pred_model,simplify=FALSE))
 data=do.call(rbind,replicate(30,data,simplify = FALSE))
 
 set.seed(20)
+mu = 1
 data$Y=rpois(n=nrow(combined_pred),lambda=exp(combined_pred))
-saveRDS(data,file="data/SpatioTemporalDataset.RDS")
+show(range(data$Y))
+SpatioTemporalDataset = data
+save(SpatioTemporalDataset,file="data/SpatioTemporalDataset.rda")
+
+#saveRDS(data,file="data/SpatioTemporalDataset.RDS")
 m= nt
 
-min_limit_y=min(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
-max_limit_y=max(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
+#min_limit_y=min(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
+#max_limit_y=max(c(x_t_main[,1]+slope*seq(1,m)/m,x_t_main[,1]))
 
 
 #Create plot, using base graphics. Black: simple sum to zero, while blue is "fully" constrained field.
-plot(x_t_main+slope*seq(1,m)/m,ylim=c(-1+min_limit_y,max_limit_y+1),type="l")
-points(x_t_main,col="blue",type="l")
+#plot(x_t_main+slope*seq(1,m)/m,ylim=c(-1+min_limit_y,max_limit_y+1),type="l")
+#points(x_t_main,col="blue",type="l")
 
 
 
