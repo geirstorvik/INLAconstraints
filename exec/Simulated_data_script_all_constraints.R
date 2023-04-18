@@ -6,14 +6,15 @@ INLA::inla.pardiso.check()
 library(data.table)
 library(ggplot2)
 library(xtable)
+library(SpaceTimePaper)
 rm(list=ls())
 #source("../R/SpaceTimeProjConstr.R")
 
-dataDir <- system.file("extdata", package = "spatioTemporalIndices")
-dataDir <- system.file("extdata", package = "SpaceTimePaper")
-data.sum.zero=readr::read_rds(paste0(dataDir,"/SpatioTemporalDatasetNew.RDS"))
-#data.sum.zero = data.sum.zero[1:5440,]
+#data("SpatioTemporalDataset")
 graph=system.file("demodata/germany.graph", package="INLA")
+df = SpatioTemporalDataset
+#df = SpatioTemporalDataset[1:5440,]
+#df$Y = pmin(df$Y,30)
 
 Q_ICAR=INLA::inla.graph2matrix(graph)
 diag(Q_ICAR)=0
@@ -45,27 +46,28 @@ PC = SpaceTimeProjConstr(ns,nt,type ="GCF")
 
 resINLA2.full.GCF.Constr.Projector=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
-         f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
-         f(interaction,model="z",precision=kap,Z=PC$P,Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
+         f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(ns)*eps,constr=T)+
+         f(interaction,model="z",precision=kap,Z=as.matrix(PC$P),Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2)))),
-       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
        #control.predictor=list(compute=TRUE)
        inla.mode="experimental",control.inla=list(strategy="gaussian" ))
 saveRDS(resINLA2.full.GCF.Constr.Projector,file="Sim.goicoa.proj.RDS")
 
 resINLA2.full.GCF.Constr.ordinary=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
-         f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
+         f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(ns)*eps,constr=T)+
          f(interaction,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A)))),
-       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
        #control.predictor=list(compute=TRUE))
        inla.mode="experimental",control.inla=list(strategy="gaussian" ))
 saveRDS(resINLA2.full.GCF.Constr.ordinary,file="Sim.goicoa.ord.RDS")
 
 show(c(resINLA2.full.GCF.Constr.ordinary$cpu.used[4],resINLA2.full.GCF.Constr.Projector$cpu.used[4]))
 
-plotData=data.table::data.table(StandardModelE=resINLA2.full.GCF.Constr.ordinary$summary.random$interaction$mean,NewParametrizationE=resINLA2.full.GCF.Constr.Projector$summary.random$interaction$mean[1:(ns*nt)],StandardModelSD=resINLA2.full.GCF.Constr.ordinary$summary.random$interaction$sd,NewParametrizationSD=resINLA2.full.GCF.Constr.Projector$summary.random$interaction$sd[1:(ns*nt)])
+plotData=data.table::data.table(StandardModelE=resINLA2.full.GCF.Constr.ordinary$summary.random$interaction$mean,
+                                NewParametrizationE=resINLA2.full.GCF.Constr.Projector$summary.random$interaction$mean[1:(ns*nt)],StandardModelSD=resINLA2.full.GCF.Constr.ordinary$summary.random$interaction$sd,NewParametrizationSD=resINLA2.full.GCF.Constr.Projector$summary.random$interaction$sd[1:(ns*nt)])
 
 ggplot(data=plotData)+geom_point(aes(y=StandardModelE,x=NewParametrizationE),colour="red",size=1.25)+xlab("Estimated mean new parametrization")+
   ylab("Estimated mean standard parametrization")+geom_abline(intercept=0,slope=1,size=0.5)+ggtitle("Estimated mean standard vs new parametrization")+ theme(plot.title=element_text(hjust=0.5))+
@@ -82,7 +84,7 @@ mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
 mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
 show(c(resINLA2.full.GCF.Constr.ordinary$mlik[1,1]+mcorS+mcorT+mcorST,
-       resINLA2.full.GCF.Constr.Projector$mlik[1,1]+mcorS+mcorT)/nrow(data.sum.zero))
+       resINLA2.full.GCF.Constr.Projector$mlik[1,1]+mcorS+mcorT)/nrow(df))
 
 
 #SC-constraints:
@@ -94,16 +96,18 @@ resINLA2.full.SC.Constr.Projector=
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
          f(interaction,model="z",precision=kap,Z=PC$P,Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2)))),
-       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
        control.predictor=list(compute=TRUE),inla.mode="experimental")
+saveRDS(resINLA2.full.SC.Constr.Projector,file="Sim.SC.proj.RDS")
 
 resINLA2.full.SC.Constr.ordinary=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
          f(interaction,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A)))),
-       data=data.sum.zero,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
        control.predictor=list(compute=TRUE),inla.mode="experimental")
+saveRDS(resINLA2.full.SC.Constr.ordinary,file="Sim.SC.ord.RDS")
 
 show(c(resINLA2.full.SC.Constr.ordinary$cpu.used[4],resINLA2.full.SC.Constr.Projector$cpu.used[4]))
 
@@ -123,8 +127,8 @@ ggsave("EstimatedSDSimulatedData_SC.pdf")
 mcorS = LikCorrectGeneric0(Q_ICAR,matrix(rep(1,ns),nrow=1),eps)
 mcorT = LikCorrectGeneric0(Q_RW2,matrix(rep(1,nt),nrow=1),eps)
 mcorST = LikCorrectGeneric0(Q_st,as.matrix(PC$A),eps)
-show(c(resINLA2.full.SC.Constr.ordinary$mlik[1,1]+mcorS+mcorT+mcorST,
-       resINLA2.full.SC.Constr.Projector$mlik[1,1]+mcorS+mcorT)/nrow(data.sum.zero))
+show(c(resINLA2.full.GCF.Constr.ordinary$mlik[1,1]+mcorS+mcorT+mcorST,
+       resINLA2.full.GCF.Constr.Projector$mlik[1,1]+mcorS+mcorT)/nrow(df))
 
 
 #Making tables for paper

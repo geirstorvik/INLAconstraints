@@ -89,7 +89,9 @@ combined_pred=do.call(rbind,replicate(30,mean_pred,simplify=FALSE))
 data=do.call(rbind,replicate(30,data,simplify = FALSE))
 
 set.seed(20)
+mu = 1
 data$Y=rpois(n=nrow(combined_pred),lambda=exp(-1+combined_pred))
+show(range(data$Y))
 
 SpatioTemporalDataset = data
 save(SpatioTemporalDataset,file="data/SpatioTemporalDataset.rda")
