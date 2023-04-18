@@ -7,11 +7,12 @@ library(data.table)
 library(ggplot2)
 library(xtable)
 rm(list=ls())
-source("../R/SpaceTimeProjConstr.R")
+#source("../R/SpaceTimeProjConstr.R")
 
 dataDir <- system.file("extdata", package = "spatioTemporalIndices")
 dataDir <- system.file("extdata", package = "SpaceTimePaper")
 data.sum.zero=readr::read_rds(paste0(dataDir,"/SpatioTemporalDatasetNew.RDS"))
+data.sum.zero = data.sum.zero[1:5440,]
 graph=system.file("demodata/germany.graph", package="INLA")
 
 Q_ICAR=INLA::inla.graph2matrix(graph)
