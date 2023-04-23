@@ -138,7 +138,7 @@ tab.goicoa.proj = rbind(dengue.goicoa.proj$summary.fixed[,1:2],
 tab.goicoa2 = cbind(tab.goicoa,tab.goicoa.proj)
 show(round(tab.goicoa2,3))
 xtable(tab.goicoa2,digits=3)
-saveRDS(tab.goicia2,file="dengue_tab_goicoa2.RDS")
+saveRDS(tab.goicoa2,file="dengue_tab_goicoa2.RDS")
 
 plotData=data.table::data.table(StandardModelE=dengue.goicoa$summary.random$T2$mean,
                                 NewParametrizationE=dengue.goicoa.proj$summary.random$T2$mean,
