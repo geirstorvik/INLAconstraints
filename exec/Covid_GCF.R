@@ -2,7 +2,7 @@
 library(INLA)
 INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
 INLA::inla.pardiso.check()
-library(SpaceTimePaper)
+library(INLAconstraints)
 library(Matrix)
 library(sf)
 library(spdep)

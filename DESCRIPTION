@@ -1,15 +1,16 @@
-Package: SpaceTimePaper
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Package: INLAconstraints
+Title: Constraints for Spatio-temporal intrinsic models in INLA 
+Version: 1.0.0.0
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Geir",
+           family = "Storvik",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
+           email = "geirs@math.uio.no",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+Description: Routines for combining the mixed effect "z-model" 
+    approach with conditioningg by kriging forhandling constraints
+    in spatio-temporal models of the Knorr IV type
+License: `GPL-2`
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -20,4 +21,4 @@ Imports:
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Depends: 
-    R (>= 2.10)
+    R (>= 4.0)

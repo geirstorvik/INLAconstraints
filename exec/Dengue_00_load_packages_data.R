@@ -23,7 +23,7 @@ packages <- c("data.table", "tidyverse", "sf", "sp", "spdep",
 lapply(packages, library, character.only = TRUE)
 setwd("C:\\Users\\fredr\\OneDrive\\Dokumenter\\Paper\\Last_paprt\\SpaceTimePaper-main\\SpaceTimePaper\\inst\\extdata")
 # load shape file for Brazil
-directory=find.package("SpaceTimePaper")
+directory=find.package("INLAconstraints")
 dir_with_data=paste0(directory,"/extdata/")
 map <- read_sf(paste0(dir_with_data,"/shape_brazil.shp"))# dim(map)
 

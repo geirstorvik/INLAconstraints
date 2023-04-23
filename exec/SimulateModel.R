@@ -1,7 +1,7 @@
 library(Matrix)
 library(INLA)
 library(sparseMVN)
-library(SpaceTimePaper)
+library(INLAconstraints)
 library(data.table)
 #Number of time points
 

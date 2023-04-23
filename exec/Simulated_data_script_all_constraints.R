@@ -1,12 +1,11 @@
 library(Matrix)
-library(SpaceTimePaper)
 library(INLA)
 INLA::inla.setOption("pardiso.license","/nr/samba/user/storvik/sys/licences/pardiso.lic")
 INLA::inla.pardiso.check()
 library(data.table)
 library(ggplot2)
 library(xtable)
-library(SpaceTimePaper)
+library(INLAconstraints)
 rm(list=ls())
 #source("../R/SpaceTimeProjConstr.R")
 
