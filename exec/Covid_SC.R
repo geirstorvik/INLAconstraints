@@ -1,13 +1,10 @@
 ##INLA analysis of covid data
 library(INLA)
-INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
-INLA::inla.pardiso.check()
+#Can turn on pardiso if available
+#INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
+#INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
-library(sf)
-library(spdep)
-library(data.table)
-library(dlnm)
 library(ggplot2)
 library(xtable)
 
@@ -69,12 +66,12 @@ baseformula =cases~offset(E)+#weekday+
 
 
 
-covid.SC.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,inla.mode="experimental",
+covid.SC.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads ="6:2",inla.mode="experimental",
                          control.fixed = list(
                            prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
 #saveRDS(covid.SC.proj,file="covid.SC.proj.RDS")
   
-covid.SC=inla(baseformula, family = "poisson",data =df,num.threads =10,inla.mode="experimental",
+covid.SC=inla(baseformula, family = "poisson",data =df,num.threads ="6:2",inla.mode="experimental",
                     control.fixed = list(
                       prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
 #saveRDS(covid.SC,file="covid.SC.RDS")

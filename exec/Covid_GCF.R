@@ -1,13 +1,10 @@
 ##INLA analysis of covid data
 library(INLA)
-INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
-INLA::inla.pardiso.check()
+#Can turn on pardiso if available
+#INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
+#INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
-library(sf)
-library(spdep)
-library(data.table)
-library(dlnm)
 library(ggplot2)
 library(xtable)
 
@@ -65,14 +62,14 @@ baseformula =cases~offset(E)+
      extraconstr=list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A))))
 
 #INLA calls
-covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads =10,inla.mode="experimental",
+cpu1 = system.time({covid.goicoa.proj=inla(baseformula.proj, family = "poisson",data =df,num.threads ="6:2",inla.mode="experimental",
                          control.fixed = list(
-                           prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
+                           prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))})
 #saveRDS(covid.goicoa.proj,file="covid.goicoa.proj.RDS")
   
-covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads =10,inla.mode="experimental",
+cpu2 = system.time({covid.goicoa=inla(baseformula, family = "poisson",data =df,num.threads ="6:2",inla.mode="experimental",
                     control.fixed = list(
-                      prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))
+                      prec.intercept =0.01),verbose=T,control.inla=list(strategy="gaussian" ))})
 #saveRDS(covid.goicoa,file="covid.goicoa.RDS")
 
 show(c(covid.goicoa$cpu.used[4],covid.goicoa.proj$cpu.used[4]))
