@@ -1,19 +1,16 @@
 library(Matrix)
 library(INLA)
-INLA::inla.setOption("pardiso.license","/nr/samba/user/storvik/sys/licences/pardiso.lic")
-INLA::inla.pardiso.check()
+#Can include pardiso if available
+#INLA::inla.setOption("pardiso.license","/nr/samba/user/storvik/sys/licences/pardiso.lic")
+#INLA::inla.pardiso.check()
 library(data.table)
 library(ggplot2)
 library(xtable)
 library(INLAconstraints)
 rm(list=ls())
-#source("../R/SpaceTimeProjConstr.R")
 
-#data("SpatioTemporalDataset")
 graph=system.file("demodata/germany.graph", package="INLA")
 df = SpatioTemporalDataset
-#df = SpatioTemporalDataset[1:5440,]
-#df$Y = pmin(df$Y,30)
 
 Q_ICAR=INLA::inla.graph2matrix(graph)
 diag(Q_ICAR)=0
@@ -43,25 +40,25 @@ kap=1e06
 
 PC = SpaceTimeProjConstr(ns,nt,type ="GCF")
 
-resINLA2.full.GCF.Constr.Projector=
+cpu1 = system.time({resINLA2.full.GCF.Constr.Projector=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(ns)*eps,constr=T)+
          f(interaction,model="z",precision=kap,Z=as.matrix(PC$P),Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2)))),
-       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads="6:2",
        #control.predictor=list(compute=TRUE)
-       inla.mode="experimental",control.inla=list(strategy="gaussian" ))
-saveRDS(resINLA2.full.GCF.Constr.Projector,file="Sim.goicoa.proj.RDS")
+       inla.mode="experimental",control.inla=list(strategy="gaussian" ))})
+#saveRDS(resINLA2.full.GCF.Constr.Projector,file="Sim.goicoa.proj.RDS")
 
-resINLA2.full.GCF.Constr.ordinary=
+cpu2 = system.time({resINLA2.full.GCF.Constr.ordinary=
   inla(Y~f(main_temporal,model="generic0",Cmatrix=Q_RW2+diag(nt)*eps,constr=T)+
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(ns)*eps,constr=T)+
          f(interaction,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A)))),
-       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads="6:2",
        #control.predictor=list(compute=TRUE))
-       inla.mode="experimental",control.inla=list(strategy="gaussian" ))
-saveRDS(resINLA2.full.GCF.Constr.ordinary,file="Sim.goicoa.ord.RDS")
+       inla.mode="experimental",control.inla=list(strategy="gaussian" ))})
+#saveRDS(resINLA2.full.GCF.Constr.ordinary,file="Sim.goicoa.ord.RDS")
 
 show(c(resINLA2.full.GCF.Constr.ordinary$cpu.used[4],resINLA2.full.GCF.Constr.Projector$cpu.used[4]))
 
@@ -95,7 +92,7 @@ resINLA2.full.SC.Constr.Projector=
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
          f(interaction,model="z",precision=kap,Z=PC$P,Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2)))),
-       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads="6:2",
        control.predictor=list(compute=TRUE),inla.mode="experimental")
 saveRDS(resINLA2.full.SC.Constr.Projector,file="Sim.SC.proj.RDS")
 
@@ -104,7 +101,7 @@ resINLA2.full.SC.Constr.ordinary=
          f(main_spatial,model="generic0",Cmatrix=Q_ICAR+diag(nrow(Q_ICAR))*eps,constr=T)+
          f(interaction,model="generic0",Cmatrix = Q_st+diag(ns*nt)*eps,constr=F,
            extraconstr = list(A=as.matrix(PC$A),e=rep(0,nrow(PC$A)))),
-       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads=10,
+       data=df,verbose=T,family="poisson",control.fixed=prior.fixed,num.threads="6:2",
        control.predictor=list(compute=TRUE),inla.mode="experimental")
 saveRDS(resINLA2.full.SC.Constr.ordinary,file="Sim.SC.ord.RDS")
 
