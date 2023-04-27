@@ -10,14 +10,11 @@
 # Step 0: load packages and pre-processed data
 #rm(list=ls())
 library(INLA)
-INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
-INLA::inla.pardiso.check()
+#Can add pardiso if available
+#INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
+#INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
-library(sf)
-library(spdep)
-library(data.table)
-library(dlnm)
 library(ggplot2)
 library(xtable)
 
@@ -25,7 +22,6 @@ library(xtable)
 nt=7
 
 data(denguedata)
-
 
 #We fit a simplified model first on a smaller subset of the data, using six years of data.
 df=denguedata$df
@@ -83,19 +79,19 @@ if(!file.exists("dengue.sc.proj.RDS") | !file.exists("dengue.sc.RDS"))
   run.sc = TRUE
 if(run.sc)
 {
-  dengue.sc.proj=inla(baseformula.proj, family = "nbinomial",data =df2,num.threads =10, 
+  dengue.sc.proj=inla(baseformula.proj, family = "nbinomial",data =df2,num.threads ="6:2", 
                       inla.mode="experimental",
                       control.fixed = list(
                       prec.intercept =0.01),verbose=F,
                       control.inla=list(strategy="gaussian" ))
-   saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
+   #saveRDS(dengue.sc.proj,file="dengue.sc.proj.RDS")
 
-  dengue.sc=inla(baseformula, family = "nbinomial",data =df2,num.threads =10, 
+  dengue.sc=inla(baseformula, family = "nbinomial",data =df2,num.threads ="6:2", 
                  inla.mode="experimental",
                  control.fixed = list(
                  prec.intercept =0.01),verbose=F,
                  control.inla=list(strategy="gaussian" ))
-   saveRDS(dengue.sc,file="dengue.sc.RDS")
+   #saveRDS(dengue.sc,file="dengue.sc.RDS")
 } 
 if(!run.sc)
 {

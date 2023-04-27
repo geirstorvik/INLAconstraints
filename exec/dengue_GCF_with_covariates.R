@@ -10,14 +10,11 @@
 # Step 0: load packages and pre-processed data
 #rm(list=ls())
 library(INLA)
-INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
-INLA::inla.pardiso.check()
+#Can add pardiso if available
+#INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
+#INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
-library(sf)
-library(spdep)
-library(data.table)
-library(dlnm)
 library(ggplot2)
 library(xtable)
 
@@ -75,32 +72,18 @@ baseformula.proj <- Y~ offset(log(E)) + Vu +
   f(S1T2,model="z",Z=as.matrix(PC$P),precision=kap,Cmatrix=Q_st+diag(ns*nt)*eps,constr=F,
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
-baseformula.proj2 <- Y~ offset(log(E)) + Vu + 
-  basis_tmin.v1.l1 + basis_tmin.v1.l2 + basis_tmin.v1.l3+
-  basis_tmin.v2.l1 + basis_tmin.v2.l2 + basis_tmin.v2.l3+
-  basis_tmin.v3.l1 + basis_tmin.v3.l2 + basis_tmin.v3.l3+
-  f(T2,model="generic0",diagonal=eps,Cmatrix=Q_RW,constr=T) +
-  f(S1,model="generic0",diagonal=eps,Cmatrix = Q_ICAR,constr=T)+
-  f(S1T2,model="z",Z=as.matrix(PC$P),diagonal=eps,precision=kap,Cmatrix=Q_st,constr=F,
-    extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
-
-dengue.goicoa.proj=inla(baseformula.proj, family = "nbinomial",data=df2,num.threads =10, inla.mode="experimental",
+cpu1 = system.time({dengue.goicoa.proj=inla(baseformula.proj, family = "nbinomial",data=df2,num.threads ="6:2", inla.mode="experimental",
                          control.fixed = list(prec.intercept =0.01),verbose=T,
                          control.inla=list(strategy="laplace"),
-                        control.compute=list(config=TRUE))
-saveRDS(dengue.goicoa.proj,file="dengue.goicoa.proj.RDS")
+                        control.compute=list(config=TRUE))})
+#saveRDS(dengue.goicoa.proj,file="dengue.goicoa.proj.RDS")
 
-dengue.goicoa.proj2=inla(baseformula.proj2, family = "nbinomial",data=df2,num.threads =10, inla.mode="experimental",
-                        control.fixed = list(prec.intercept =0.01),verbose=T,
-                        control.inla=list(strategy="laplace"),
-                        control.compute=list(config=TRUE))
-saveRDS(dengue.goicoa.proj,file="dengue.goicoa.proj.RDS")
 
-dengue.goicoa=inla(baseformula, family = "nbinomial",data =df2,num.threads =10, inla.mode="experimental",
+cpu2 = system.time({dengue.goicoa=inla(baseformula, family = "nbinomial",data =df2,num.threads ="6:2", inla.mode="experimental",
                          control.fixed = list(prec.intercept =0.01),verbose=T,
-                     control.inla=list(strategy="laplace"))
-saveRDS(dengue.goicoa,file="dengue.goicoa.RDS")
+                     control.inla=list(strategy="laplace"))})
+#saveRDS(dengue.goicoa,file="dengue.goicoa.RDS")
 
 show(c(dengue.goicoa$cpu.used[4],dengue.goicoa.proj$cpu.used[4]))
 
