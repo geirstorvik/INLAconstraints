@@ -5,6 +5,13 @@ library(INLA)
 #INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
+<<<<<<< HEAD
+=======
+#library(sf)
+#library(spdep)
+library(data.table)
+library(dlnm)
+>>>>>>> 077e27a (Update from MI machine)
 library(ggplot2)
 library(xtable)
 
@@ -31,7 +38,7 @@ df$S1T1 = (df$T1-1)*ns+df$county
 Q_ICAR = -coviddata$adj
 for(i in 1:ns)
   Q_ICAR[i,i] = -sum(Q_ICAR[i,-i])
-Q_RW2=GMRF_RW(n=nt,order=2)
+Q_RW2=GMRF_RW(n=nt,order=1)
 
 eps = 1e-05
 kap = 1e06
