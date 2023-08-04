@@ -15,6 +15,13 @@ library(INLA)
 #INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
+<<<<<<< HEAD
+=======
+#library(sf)
+#library(spdep)
+library(data.table)
+#library(dlnm)
+>>>>>>> 7a85a25 (Update from MI)
 library(ggplot2)
 library(xtable)
 
@@ -73,6 +80,7 @@ baseformula.proj <- Y~ offset(log(E)) + Vu +
     extraconstr=list(A=as.matrix(PC$A2),e=rep(0,nrow(PC$A2))))
 
 
+<<<<<<< HEAD
 cpu1 = system.time({dengue.goicoa.proj=inla(baseformula.proj, family = "nbinomial",data=df2,num.threads ="6:2", inla.mode="experimental",
                          control.fixed = list(prec.intercept =0.01),verbose=T,
                          control.inla=list(strategy="laplace"),
@@ -84,6 +92,25 @@ cpu2 = system.time({dengue.goicoa=inla(baseformula, family = "nbinomial",data =d
                          control.fixed = list(prec.intercept =0.01),verbose=T,
                      control.inla=list(strategy="laplace"))})
 #saveRDS(dengue.goicoa,file="dengue.goicoa.RDS")
+=======
+
+dengue.goicoa.proj=inla(baseformula.proj, family = "nbinomial",data=df2,num.threads ="6:2", inla.mode="experimental",
+                         control.fixed = list(prec.intercept =0.01),verbose=T,
+                         control.inla=list(strategy="gaussian"),
+                        control.compute=list(config=TRUE))
+saveRDS(dengue.goicoa.proj,file="dengue.goicoa.proj.RDS")
+
+dengue.goicoa.proj2=inla(baseformula.proj2, family = "nbinomial",data=df2,num.threads ="6:2", inla.mode="experimental",
+                        control.fixed = list(prec.intercept =0.01),verbose=T,
+                        control.inla=list(strategy="laplace"),
+                        control.compute=list(config=TRUE))
+saveRDS(dengue.goicoa.proj,file="dengue.goicoa.proj.RDS")
+
+dengue.goicoa=inla(baseformula, family = "nbinomial",data =df2,num.threads ="6:2", inla.mode="experimental",
+                         control.fixed = list(prec.intercept =0.01),verbose=T,
+                     control.inla=list(strategy="gaussian"))
+saveRDS(dengue.goicoa,file="dengue.goicoa.RDS")
+>>>>>>> 7a85a25 (Update from MI)
 
 show(c(dengue.goicoa$cpu.used[4],dengue.goicoa.proj$cpu.used[4]))
 

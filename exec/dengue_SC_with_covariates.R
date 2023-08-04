@@ -10,13 +10,23 @@
 # Step 0: load packages and pre-processed data
 #rm(list=ls())
 library(INLA)
+<<<<<<< HEAD
 #Can add pardiso if available
+=======
+>>>>>>> 7a85a25 (Update from MI)
 #INLA::inla.setOption("pardiso.license","~/sys/licences/pardiso.lic")
 #INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
+<<<<<<< HEAD
+=======
+#library(sf)
+#library(spdep)
+#library(data.table)
+library(dlnm)
+>>>>>>> 7a85a25 (Update from MI)
 library(ggplot2)
-library(xtable)
+#library(xtable)
 
 
 nt=7
