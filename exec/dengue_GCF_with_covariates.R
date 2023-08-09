@@ -15,13 +15,10 @@ library(INLA)
 #INLA::inla.pardiso.check()
 library(INLAconstraints)
 library(Matrix)
-<<<<<<< HEAD
-=======
-#library(sf)
-#library(spdep)
+library(sf)
+library(spdep)
 library(data.table)
-#library(dlnm)
->>>>>>> 7a85a25 (Update from MI)
+library(dlnm)
 library(ggplot2)
 library(xtable)
 
